@@ -10,6 +10,7 @@ from utils import (
     build_output_tables,
 )
 
+
 def setup_dataloader(args):
     """
     return:
@@ -70,8 +71,6 @@ def train_epoch(
     device,
     training=True,
 ):
-    model.train()
-
     epoch_action_loss = 0.0
     epoch_target_loss = 0.0
 
@@ -153,6 +152,7 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
     # Train model for a fixed number of epochs
     # In each epoch we compute loss on each sample in our dataset and update the model
     # weights via backpropagation
+    model.train()
 
     for epoch in tqdm.tqdm(range(args.num_epochs)):
 
