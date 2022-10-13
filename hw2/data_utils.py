@@ -124,7 +124,7 @@ def save_word2vec_format(fname, model, i2v):
 
 
 def encode_data(data, v2i, seq_len):
-    num_insts = sum([len(ep) for ep in data])
+    num_insts = len(data)
     x = np.zeros((num_insts, seq_len), dtype=np.int32)
     lens = np.zeros((num_insts, 1), dtype=np.int32)
 
