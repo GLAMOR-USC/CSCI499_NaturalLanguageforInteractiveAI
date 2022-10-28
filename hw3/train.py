@@ -73,7 +73,18 @@ def train_epoch(
     device,
     training=True,
 ):
+    """
+    # TODO: implement function for greedy decoding.
+    # This function should input the instruction sentence
+    # and autoregressively predict the target label.
+    # e.g. Input: "Walk straight, turn left to the counter."
+    # Output: "<BOS> GoToLocation diningtable <EOS>"
+    # Also write some code to compute the accuracy of your
+    # predictions.
+    """
+
     epoch_loss = 0.0
+    epoch_acc = 0.0
 
     # iterate over each batch in the dataloader
     # NOTE: you may have additional outputs from the loader __getitem__, you can modify this
@@ -93,10 +104,20 @@ def train_epoch(
             loss.backward()
             optimizer.step()
 
+        """
+        # TODO: write code to compute the accuracy of your model predictions
+        # by comparing the predicted logits against the ground truth labels
+        """
+        acc = None
+
         # logging
         epoch_loss += loss.item()
+        epoch_acc += acc.item()
 
-    return epoch_loss
+    epoch_loss /= len(loader)
+    epoch_acc /= len(loader)
+
+    return epoch_loss, epoch_acc
 
 
 def validate(args, model, loader, optimizer, criterion, device):
@@ -105,7 +126,7 @@ def validate(args, model, loader, optimizer, criterion, device):
 
     # don't compute gradients
     with torch.no_grad():
-        val_loss = train_epoch(
+        val_loss, val_acc = train_epoch(
             args,
             model,
             loader,
@@ -114,18 +135,6 @@ def validate(args, model, loader, optimizer, criterion, device):
             device,
             training=False,
         )
-
-        """
-        # TODO: implement function for greedy decoding. 
-        # This function should input the instruction sentence 
-        # and autoregressively predict the target label. 
-        # e.g. Input: "Walk straight, turn left to the counter."
-        # Output: "<BOS> GoToLocation diningtable <EOS>"
-        # Also write some code to compute the accuracy of your
-        # predictions. 
-        
-        """
-        val_acc = None
 
     return val_loss, val_acc
 
@@ -140,7 +149,7 @@ def train(args, model, loaders, optimizer, criterion, device):
 
         # train single epoch
         # returns loss for action and target prediction and accuracy
-        train_loss = train_epoch(
+        train_loss, train_acc = train_epoch(
             args,
             model,
             loaders["train"],
