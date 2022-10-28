@@ -37,7 +37,12 @@ def setup_model(args):
         - model: YourOwnModelClass
     """
     # ================== TODO: CODE HERE ================== #
-    # Task: Initialize your model.
+    # Task: Initialize your model. Your model should be an
+    # an encoder-decoder architecture that encoders the
+    # input sentence into a context vector. The decoder should
+    # take as input this context vector and autoregressively
+    # decode the target sentence. You can define a max length
+    # parameter to stop decoding after a certain length.
     # ===================================================== #
     model = None
     return model
@@ -46,19 +51,17 @@ def setup_model(args):
 def setup_optimizer(args, model):
     """
     return:
-        - action_criterion: loss_fn
-        - target_criterion: loss_fn
+        - criterion: loss_fn
         - optimizer: torch.optim
     """
     # ================== TODO: CODE HERE ================== #
     # Task: Initialize the loss function for action predictions
     # and target predictions. Also initialize your optimizer.
     # ===================================================== #
-    action_criterion = None
-    target_criterion = None
+    criterion = None
     optimizer = None
 
-    return action_criterion, target_criterion, optimizer
+    return criterion, optimizer
 
 
 def train_epoch(
@@ -66,19 +69,11 @@ def train_epoch(
     model,
     loader,
     optimizer,
-    action_criterion,
-    target_criterion,
+    criterion,
     device,
     training=True,
 ):
-    epoch_action_loss = 0.0
-    epoch_target_loss = 0.0
-
-    # keep track of the model predictions for computing accuracy
-    action_preds = []
-    target_preds = []
-    action_labels = []
-    target_labels = []
+    epoch_loss = 0.0
 
     # iterate over each batch in the dataloader
     # NOTE: you may have additional outputs from the loader __getitem__, you can modify this
@@ -88,15 +83,9 @@ def train_epoch(
 
         # calculate the loss and train accuracy and perform backprop
         # NOTE: feel free to change the parameters to the model forward pass here + outputs
-        actions_out, targets_out = model(inputs, labels)
+        output = model(inputs, labels)
 
-        # calculate the action and target prediction loss
-        # NOTE: we assume that labels is a tensor of size Bx2 where labels[:, 0] is the
-        # action label and labels[:, 1] is the target label
-        action_loss = action_criterion(actions_out.squeeze(), labels[:, 0].long())
-        target_loss = target_criterion(targets_out.squeeze(), labels[:, 1].long())
-
-        loss = action_loss + target_loss
+        loss = criterion(output.squeeze(), labels[:, 0].long())
 
         # step optimizer and compute gradients during training
         if training:
@@ -105,50 +94,43 @@ def train_epoch(
             optimizer.step()
 
         # logging
-        epoch_action_loss += action_loss.item()
-        epoch_target_loss += target_loss.item()
+        epoch_loss += loss.item()
 
-        # take the prediction with the highest probability
-        # NOTE: this could change depending on if you apply Sigmoid in your forward pass
-        action_preds_ = actions_out.argmax(-1)
-        target_preds_ = targets_out.argmax(-1)
-
-        # aggregate the batch predictions + labels
-        action_preds.extend(action_preds_.cpu().numpy())
-        target_preds.extend(target_preds_.cpu().numpy())
-        action_labels.extend(labels[:, 0].cpu().numpy())
-        target_labels.extend(labels[:, 1].cpu().numpy())
-
-    action_acc = accuracy_score(action_preds, action_labels)
-    target_acc = accuracy_score(target_preds, target_labels)
-
-    return epoch_action_loss, epoch_target_loss, action_acc, target_acc
+    return epoch_loss
 
 
-def validate(
-    args, model, loader, optimizer, action_criterion, target_criterion, device
-):
+def validate(args, model, loader, optimizer, criterion, device):
     # set model to eval mode
     model.eval()
 
     # don't compute gradients
     with torch.no_grad():
-
-        val_action_loss, val_target_loss, action_acc, target_acc = train_epoch(
+        val_loss = train_epoch(
             args,
             model,
             loader,
             optimizer,
-            action_criterion,
-            target_criterion,
+            criterion,
             device,
             training=False,
         )
 
-    return val_action_loss, val_target_loss, action_acc, target_acc
+        """
+        # TODO: implement function for greedy decoding. 
+        # This function should input the instruction sentence 
+        # and autoregressively predict the target label. 
+        # e.g. Input: "Walk straight, turn left to the counter."
+        # Output: "<BOS> GoToLocation diningtable <EOS>"
+        # Also write some code to compute the accuracy of your
+        # predictions. 
+        
+        """
+        val_acc = None
+
+    return val_loss, val_acc
 
 
-def train(args, model, loaders, optimizer, action_criterion, target_criterion, device):
+def train(args, model, loaders, optimizer, criterion, device):
     # Train model for a fixed number of epochs
     # In each epoch we compute loss on each sample in our dataset and update the model
     # weights via backpropagation
@@ -158,55 +140,37 @@ def train(args, model, loaders, optimizer, action_criterion, target_criterion, d
 
         # train single epoch
         # returns loss for action and target prediction and accuracy
-        (
-            train_action_loss,
-            train_target_loss,
-            train_action_acc,
-            train_target_acc,
-        ) = train_epoch(
+        train_loss = train_epoch(
             args,
             model,
             loaders["train"],
             optimizer,
-            action_criterion,
-            target_criterion,
+            criterion,
             device,
         )
 
         # some logging
-        print(
-            f"train action loss : {train_action_loss} | train target loss: {train_target_loss}"
-        )
-        print(
-            f"train action acc : {train_action_acc} | train target acc: {train_target_acc}"
-        )
+        print(f"train loss : {train_loss}")
 
         # run validation every so often
         # during eval, we run a forward pass through the model and compute
         # loss and accuracy but we don't update the model weights
         if epoch % args.val_every == 0:
-            val_action_loss, val_target_loss, val_action_acc, val_target_acc = validate(
+            val_loss, val_acc = validate(
                 args,
                 model,
                 loaders["val"],
                 optimizer,
-                action_criterion,
-                target_criterion,
+                criterion,
                 device,
             )
 
-            print(
-                f"val action loss : {val_action_loss} | val target loss: {val_target_loss}"
-            )
-            print(
-                f"val action acc : {val_action_acc} | val target losaccs: {val_target_acc}"
-            )
+            print(f"val loss : {val_loss} | val acc: {val_acc}")
 
     # ================== TODO: CODE HERE ================== #
     # Task: Implement some code to keep track of the model training and
     # evaluation loss. Use the matplotlib library to plot
-    # 4 figures for 1) training loss, 2) training accuracy,
-    # 3) validation loss, 4) validation accuracy
+    # 3 figures for 1) training loss, 2) validation loss, 3) validation accuracy
     # ===================================================== #
 
 
@@ -222,22 +186,19 @@ def main(args):
     print(model)
 
     # get optimizer and loss functions
-    action_criterion, target_criterion, optimizer = setup_optimizer(args, model)
+    criterion, optimizer = setup_optimizer(args, model)
 
     if args.eval:
-        val_action_loss, val_target_loss, val_action_acc, val_target_acc = validate(
+        val_loss, val_acc = validate(
             args,
             model,
             loaders["val"],
             optimizer,
-            action_criterion,
-            target_criterion,
+            criterion,
             device,
         )
     else:
-        train(
-            args, model, loaders, optimizer, action_criterion, target_criterion, device
-        )
+        train(args, model, loaders, optimizer, criterion, device)
 
 
 if __name__ == "__main__":
