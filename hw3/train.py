@@ -43,6 +43,15 @@ def setup_model(args):
     # take as input this context vector and autoregressively
     # decode the target sentence. You can define a max length
     # parameter to stop decoding after a certain length.
+
+    # For some additional guidance, you can separate your model
+    # into an encoder class and a decoder class.
+    # The encoder class forward pass will simply run the input
+    # sequence through some recurrent model.
+    # The decoder class you will need to implement a teacher
+    # forcing mechanism in the forward pass such that instead
+    # of feeding the model prediction into the recurrent model,
+    # you will give the embedding of the target token.
     # ===================================================== #
     model = None
     return model
@@ -76,11 +85,17 @@ def train_epoch(
     """
     # TODO: implement function for greedy decoding.
     # This function should input the instruction sentence
-    # and autoregressively predict the target label.
+    # and autoregressively predict the target label by selecting
+    # the token with the highest probability at each step.
+    # Note this is slightly different from the forward pass of
+    # your decoder because you want to pick the token
+    # with the highest probability instead of using the
+    # teacher-forced token.
+
     # e.g. Input: "Walk straight, turn left to the counter."
     # Output: "<BOS> GoToLocation diningtable <EOS>"
     # Also write some code to compute the accuracy of your
-    # predictions.
+    # predictions against the ground truth.
     """
 
     epoch_loss = 0.0
