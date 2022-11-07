@@ -8,6 +8,7 @@ from utils import (
     preprocess_string,
     build_tokenizer_table,
     build_output_tables,
+    prefix_match
 )
 
 
@@ -92,8 +93,8 @@ def train_epoch(
     # with the highest probability instead of using the
     # teacher-forced token.
 
-    # e.g. Input: "Walk straight, turn left to the counter."
-    # Output: "<BOS> GoToLocation diningtable <EOS>"
+    # e.g. Input: "Walk straight, turn left to the counter. Put the knife on the table."
+    # Output: [(GoToLocation, diningtable), (PutObject, diningtable)]
     # Also write some code to compute the accuracy of your
     # predictions against the ground truth.
     """
@@ -120,10 +121,15 @@ def train_epoch(
             optimizer.step()
 
         """
-        # TODO: write code to compute the accuracy of your model predictions
-        # by comparing the predicted logits against the ground truth labels
+        # TODO: implement code to compute some other metrics between your predicted sequence
+        # of (action, target) labels vs the ground truth sequence. We already provide 
+        # exact match and prefix exact match. You can also try to compute longest common subsequence.
+        # Feel free to change the input to these functions.
         """
-        acc = None
+        # TODO: add code to log these metrics
+        em = output == labels
+        prefix_em = prefix_em(output, labels)
+        acc = 0.0
 
         # logging
         epoch_loss += loss.item()
